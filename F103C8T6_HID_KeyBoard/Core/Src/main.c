@@ -25,12 +25,14 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "usbd_hid.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+uint8_t KeyBoard[8] = {0,0,4,0,0,0,0,0};
+uint8_t KeyBoard01[8] = {0,0,0,0,0,0,0,0};
+extern USBD_HandleTypeDef hUsbDeviceFS;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -100,6 +102,20 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+		if(KeyBoard[2] >= 29)
+		{
+			KeyBoard[2] = 4;
+		}
+		else
+		{
+			KeyBoard[2]++;
+		}
+		USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
+		HAL_Delay(15);
+		USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard01));
+		HAL_Delay(15);
+		USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
+		HAL_Delay(1000);
   }
   /* USER CODE END 3 */
 }
