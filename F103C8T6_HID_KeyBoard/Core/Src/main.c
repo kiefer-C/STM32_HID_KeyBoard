@@ -33,6 +33,7 @@
 uint8_t KeyBoard[8] = {0,0,4,0,0,0,0,0};
 uint8_t KeyBoard01[8] = {0,0,0,0,0,0,0,0};
 extern USBD_HandleTypeDef hUsbDeviceFS;
+uint8_t flag;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -102,20 +103,49 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		if(KeyBoard[2] >= 29)
+//		if(KeyBoard[2] >= 29)
+//		{
+//			KeyBoard[2] = 4;
+//		}
+//		else
+//		{
+//			KeyBoard[2]++;
+//		}
+//		USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
+//		HAL_Delay(15);
+//		USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard01));
+//		HAL_Delay(15);
+//		USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
+//		HAL_Delay(1000);
+		if(flag)
 		{
+			flag=0;
+			KeyBoard[2] = 0x2c;//space
+			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard01));
+			HAL_Delay(15);
+			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
+			HAL_Delay(1000);
 			KeyBoard[2] = 4;
+			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard01));
+			HAL_Delay(15);
+			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
+			HAL_Delay(15);
+			KeyBoard[2] = 5;
+			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard01));
+			HAL_Delay(15);
+			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
+			HAL_Delay(15);
+			KeyBoard[2] = 6;
+			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard01));
+			HAL_Delay(15);
+			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
+			HAL_Delay(15);
+			KeyBoard[2] = 7;
+			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard01));
+			HAL_Delay(15);
+			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
+			HAL_Delay(15);
 		}
-		else
-		{
-			KeyBoard[2]++;
-		}
-		USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
-		HAL_Delay(15);
-		USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard01));
-		HAL_Delay(15);
-		USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
-		HAL_Delay(1000);
   }
   /* USER CODE END 3 */
 }
@@ -165,7 +195,31 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  if(GPIO_Pin==SW1_Pin)
+  {
+		if(HAL_GPIO_ReadPin(SW1_GPIO_Port,SW1_Pin) == GPIO_PIN_SET)
+		{
+			
+		}
+		else if(HAL_GPIO_ReadPin(SW1_GPIO_Port,SW1_Pin) == GPIO_PIN_RESET)
+		{
+			flag=1;
+		}
+	}
+	else if(GPIO_Pin==SW2_Pin)
+  {
+		if(HAL_GPIO_ReadPin(SW2_GPIO_Port,SW2_Pin) == GPIO_PIN_SET)
+		{
+			
+		}
+		else if(HAL_GPIO_ReadPin(SW2_GPIO_Port,SW2_Pin) == GPIO_PIN_RESET)
+		{
+			
+		}
+	}
+}
 /* USER CODE END 4 */
 
 /**
