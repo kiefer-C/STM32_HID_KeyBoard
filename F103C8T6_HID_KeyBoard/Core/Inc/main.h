@@ -54,7 +54,11 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+extern uint8_t aRxBuffer[1];
+extern uint8_t KeyBuff[4];
+void CmdHandle(void);
+void ReadCustomData(void);
+void CustomDataWriteToFlash(uint32_t DATA_64);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

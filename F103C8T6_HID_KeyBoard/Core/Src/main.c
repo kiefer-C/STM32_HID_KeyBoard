@@ -20,12 +20,23 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "usart.h"
 #include "usb_device.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "usbd_hid.h"
+#ifdef __GNUC__
+	#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+	#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif
+PUTCHAR_PROTOTYPE
+{
+		HAL_UART_Transmit(&huart1 , (uint8_t *)&ch, 1, 0xFFFF);
+		return ch;
+}
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -34,6 +45,8 @@ uint8_t KeyBoard[8] = {0,0,4,0,0,0,0,0};
 uint8_t KeyBoard01[8] = {0,0,0,0,0,0,0,0};
 extern USBD_HandleTypeDef hUsbDeviceFS;
 uint8_t flag;
+uint8_t aRxBuffer[1];
+uint8_t KeyBuff[4]={0x27,0x1e,0x1f,0x20};
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -92,8 +105,10 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USB_DEVICE_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-
+	HAL_UART_Receive_IT(&huart1,aRxBuffer,1);
+	ReadCustomData();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -103,48 +118,33 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-//		if(KeyBoard[2] >= 29)
-//		{
-//			KeyBoard[2] = 4;
-//		}
-//		else
-//		{
-//			KeyBoard[2]++;
-//		}
-//		USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
-//		HAL_Delay(15);
-//		USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard01));
-//		HAL_Delay(15);
-//		USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
-//		HAL_Delay(1000);
-		if(flag)
+		if(flag==1)
 		{
 			flag=0;
+			KeyBoard[0] = 0;
 			KeyBoard[2] = 0x2c;//space
 			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard01));
 			HAL_Delay(15);
 			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
 			HAL_Delay(1000);
-			KeyBoard[2] = 4;
+			uint8_t i=0;
+			for(;i<4;i++)
+			{
+				KeyBoard[2] = KeyBuff[i];
+				USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard));
+				HAL_Delay(15);
+				USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard01));
+				HAL_Delay(15);
+			}
+		}
+		else if(flag==2)
+		{
+			flag=0;
+			KeyBoard[0] = 8;//win
+			KeyBoard[2] = 0xf;//l
 			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard01));
 			HAL_Delay(15);
 			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
-			HAL_Delay(15);
-			KeyBoard[2] = 5;
-			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard01));
-			HAL_Delay(15);
-			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
-			HAL_Delay(15);
-			KeyBoard[2] = 6;
-			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard01));
-			HAL_Delay(15);
-			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
-			HAL_Delay(15);
-			KeyBoard[2] = 7;
-			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard01));
-			HAL_Delay(15);
-			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
-			HAL_Delay(15);
 		}
   }
   /* USER CODE END 3 */
@@ -216,8 +216,16 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		}
 		else if(HAL_GPIO_ReadPin(SW2_GPIO_Port,SW2_Pin) == GPIO_PIN_RESET)
 		{
-			
+			flag=2;
 		}
+	}
+}
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
+{
+	if(UartHandle == &huart1)
+	{
+		HAL_UART_Receive_IT(&huart1,aRxBuffer,1);
+		CmdHandle();
 	}
 }
 /* USER CODE END 4 */
