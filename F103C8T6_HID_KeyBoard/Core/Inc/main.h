@@ -74,6 +74,12 @@ void CustomDataWriteToFlash(uint32_t DATA_64);
 #define LED_2_GPIO_Port GPIOA
 #define LED_3_Pin GPIO_PIN_3
 #define LED_3_GPIO_Port GPIOA
+#define RES_Pin GPIO_PIN_8
+#define RES_GPIO_Port GPIOA
+#define DC_Pin GPIO_PIN_9
+#define DC_GPIO_Port GPIOA
+#define CS_Pin GPIO_PIN_10
+#define CS_GPIO_Port GPIOA
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
