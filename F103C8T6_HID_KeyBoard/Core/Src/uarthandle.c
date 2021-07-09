@@ -4,6 +4,10 @@
 uint8_t Cmd_Buf[6];
 static uint8_t Cmd_Buf_Cnt;
 
+uint8_t rx_buffer_3[BUFFER_SIZE];
+__IO uint8_t recv_end_flag_3;
+__IO uint8_t rx_len_3;
+
 void CmdHandle(void)
 {
 	if(aRxBuffer[0]==0xe8)
@@ -37,6 +41,25 @@ void CmdHandle(void)
 			}
 			Cmd_Buf_Cnt++;
 			Cmd_Buf[Cmd_Buf_Cnt]=aRxBuffer[0];
+		}
+	}
+}
+
+void UART_IRQ(UART_HandleTypeDef *huart)
+{
+	uint32_t tmp_flag;
+	if(huart == &huart3)
+	{
+		tmp_flag =__HAL_UART_GET_FLAG(huart,UART_FLAG_IDLE);
+		if((tmp_flag != RESET))
+		{
+#if INTR==0
+			recv_end_flag_3 = 1;
+#endif
+			__HAL_UART_CLEAR_IDLEFLAG(huart);
+			HAL_UART_DMAStop(huart);
+			uint32_t temp = __HAL_DMA_GET_COUNTER(&hdma_usart3_rx);
+			rx_len_3 = BUFFER_SIZE - temp;
 		}
 	}
 }

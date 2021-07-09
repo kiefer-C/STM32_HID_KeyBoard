@@ -20,6 +20,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "dma.h"
 #include "spi.h"
 #include "usart.h"
 #include "usb_device.h"
@@ -30,6 +31,7 @@
 #include "usbd_hid.h"
 #include "oled.h"
 #include "bmp.h"
+#include "as608.h"
 #ifdef __GNUC__
 	#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
 #else
@@ -109,14 +111,26 @@ int main(void)
   MX_GPIO_Init();
   MX_USB_DEVICE_Init();
   MX_SPI2_Init();
+	MX_DMA_Init();
   MX_USART1_UART_Init();
+  MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
 	HAL_UART_Receive_IT(&huart1,aRxBuffer,1);
+	__HAL_UART_ENABLE_IT(&huart3, UART_IT_IDLE);
+	HAL_UART_Receive_DMA(&huart3,rx_buffer_3,BUFFER_SIZE);
 	ReadCustomData();
 	OLED_Init();
 	HAL_Delay(1000);
 	OLED_Clear();
 //	uint8_t t=' ';
+	while(PS_HandShake(&AS608Addr))
+	{
+	  OLED_ShowString(0,2,(unsigned char*)" ShakHands....");
+	}
+	//Œ’ ÷Õ®π˝  
+	OLED_ShowString(0,2,(unsigned char*)" Ready To Work ");
+	
+	HAL_Delay(100);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -126,6 +140,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+		press_FR();
+		
 		if(flag==1)
 		{
 			flag=0;

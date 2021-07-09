@@ -32,12 +32,15 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+//#include "stm32f103xb.h" 
+//#include "stm32f1xx_hal_def.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-
+typedef uint32_t  u32;
+typedef uint16_t u16;
+typedef uint8_t  u8;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -54,11 +57,14 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
+#define BUFFER_SIZE  100
+extern uint8_t rx_buffer_3[BUFFER_SIZE];
 extern uint8_t aRxBuffer[1];
 extern uint8_t KeyBuff[4];
 void CmdHandle(void);
 void ReadCustomData(void);
 void CustomDataWriteToFlash(uint32_t DATA_64);
+void UART_IRQ(UART_HandleTypeDef *huart);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
@@ -74,6 +80,9 @@ void CustomDataWriteToFlash(uint32_t DATA_64);
 #define LED_2_GPIO_Port GPIOA
 #define LED_3_Pin GPIO_PIN_3
 #define LED_3_GPIO_Port GPIOA
+#define Touch_Pin GPIO_PIN_1
+#define Touch_GPIO_Port GPIOB
+#define Touch_EXTI_IRQn EXTI1_IRQn
 #define RES_Pin GPIO_PIN_8
 #define RES_GPIO_Port GPIOA
 #define DC_Pin GPIO_PIN_9
