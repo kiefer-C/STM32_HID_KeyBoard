@@ -53,13 +53,12 @@ void UART_IRQ(UART_HandleTypeDef *huart)
 		tmp_flag =__HAL_UART_GET_FLAG(huart,UART_FLAG_IDLE);
 		if((tmp_flag != RESET))
 		{
-#if INTR==0
 			recv_end_flag_3 = 1;
-#endif
 			__HAL_UART_CLEAR_IDLEFLAG(huart);
 			HAL_UART_DMAStop(huart);
 			uint32_t temp = __HAL_DMA_GET_COUNTER(&hdma_usart3_rx);
 			rx_len_3 = BUFFER_SIZE - temp;
+			HAL_UART_Receive_DMA(&huart3,rx_buffer_3,BUFFER_SIZE);
 		}
 	}
 }

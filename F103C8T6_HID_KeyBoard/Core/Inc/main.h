@@ -58,9 +58,11 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 #define BUFFER_SIZE  100
+extern __IO uint8_t recv_end_flag_3;
+extern __IO uint8_t rx_len_3;
 extern uint8_t rx_buffer_3[BUFFER_SIZE];
 extern uint8_t aRxBuffer[1];
-extern uint8_t KeyBuff[4];
+extern __IO uint8_t KeyBuff[4];
 void CmdHandle(void);
 void ReadCustomData(void);
 void CustomDataWriteToFlash(uint32_t DATA_64);

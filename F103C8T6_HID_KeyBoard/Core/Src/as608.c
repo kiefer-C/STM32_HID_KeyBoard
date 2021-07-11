@@ -3,6 +3,9 @@
 #include "as608.h"
 
 u32 AS608Addr = 0XFFFFFFFF; //默认
+#define HEAD_H 0xef
+#define HEAD_L 0x01
+#define PACK_CMD 0x01
 
 u16 ValidN;
 
@@ -19,47 +22,47 @@ u16 ValidN;
 //  GPIO_Init(GPIOA, &GPIO_InitStructure);//初始化GPIO	
 //}
 //串口发送一个字节
-static void MYUSART_SendData(u8 data)
-{
-	while((USART2->SR&0X40)==0); 
-	USART2->DR = data;
-}
+//static void MYUSART_SendData(u8 data)
+//{
+//	while((USART2->SR&0X40)==0); 
+//	USART2->DR = data;
+//}
 //发送包头
-static void SendHead(void)
-{
-	MYUSART_SendData(0xEF);
-	MYUSART_SendData(0x01);
-}
+//static void SendHead(void)
+//{
+//	MYUSART_SendData(0xEF);
+//	MYUSART_SendData(0x01);
+//}
 //发送地址
-static void SendAddr(void)
-{
-	MYUSART_SendData(AS608Addr>>24);
-	MYUSART_SendData(AS608Addr>>16);
-	MYUSART_SendData(AS608Addr>>8);
-	MYUSART_SendData(AS608Addr);
-}
+//static void SendAddr(void)
+//{
+//	MYUSART_SendData(AS608Addr>>24);
+//	MYUSART_SendData(AS608Addr>>16);
+//	MYUSART_SendData(AS608Addr>>8);
+//	MYUSART_SendData(AS608Addr);
+//}
 //发送包标识,
-static void SendFlag(u8 flag)
-{
-	MYUSART_SendData(flag);
-}
+//static void SendFlag(u8 flag)
+//{
+//	MYUSART_SendData(flag);
+//}
 //发送包长度
-static void SendLength(int length)
-{
-	MYUSART_SendData(length>>8);
-	MYUSART_SendData(length);
-}
+//static void SendLength(int length)
+//{
+//	MYUSART_SendData(length>>8);
+//	MYUSART_SendData(length);
+//}
 //发送指令码
-static void Sendcmd(u8 cmd)
-{
-	MYUSART_SendData(cmd);
-}
+//static void Sendcmd(u8 cmd)
+//{
+//	MYUSART_SendData(cmd);
+//}
 //发送校验和
-static void SendCheck(u16 check)
-{
-	MYUSART_SendData(check>>8);
-	MYUSART_SendData(check);
-}
+//static void SendCheck(u16 check)
+//{
+//	MYUSART_SendData(check>>8);
+//	MYUSART_SendData(check);
+//}
 //判断中断接收的数组有没有应答包
 //waittime为等待中断接收数据的时间（单位1ms）
 //返回值：数据包首地址
@@ -70,14 +73,26 @@ static u8 *JudgeStr(u16 waittime)
 	str[0]=0xef;str[1]=0x01;str[2]=AS608Addr>>24;
 	str[3]=AS608Addr>>16;str[4]=AS608Addr>>8;
 	str[5]=AS608Addr;str[6]=0x07;str[7]='\0';
-	USART2_RX_STA=0;
+//	USART2_RX_STA=0;
+//	while(--waittime)
+//	{
+//		HAL_Delay(1);
+//		if(USART2_RX_STA&0X8000)//接收到一次数据
+//		{
+//			USART2_RX_STA=0;
+//			data=strstr((const char*)USART2_RX_BUF,(const char*)str);
+//			if(data)
+//				return (u8*)data;	
+//		}
+//	}
 	while(--waittime)
 	{
 		HAL_Delay(1);
-		if(USART2_RX_STA&0X8000)//接收到一次数据
+		if(recv_end_flag_3)//接收到一次数据
 		{
-			USART2_RX_STA=0;
-			data=strstr((const char*)USART2_RX_BUF,(const char*)str);
+			recv_end_flag_3=0;
+			rx_buffer_3[rx_len_3]='\0';
+			data=strstr((const char*)rx_buffer_3,(const char*)str);
 			if(data)
 				return (u8*)data;	
 		}
@@ -89,16 +104,24 @@ static u8 *JudgeStr(u16 waittime)
 //模块返回确认字
 u8 PS_GetImage(void)
 {
-  u16 temp;
+//  u16 temp;
   u8  ensure;
 	u8  *data;
-	SendHead();
-	SendAddr();
-	SendFlag(0x01);//命令包标识
-	SendLength(0x03);
-	Sendcmd(0x01);
-  temp =  0x01+0x03+0x01;
-	SendCheck(temp);
+//	SendHead();
+//	SendAddr();
+//	SendFlag(0x01);//命令包标识
+//	SendLength(0x03);
+//	Sendcmd(0x01);
+//  temp =  0x01+0x03+0x01;
+//	SendCheck(temp);
+	
+	recv_end_flag_3=0;
+	u16 length = 0x3;
+	u16 temp = PACK_CMD+length+0x01;
+	u8 send_cmd[]={HEAD_H,HEAD_L,AS608Addr>>24,AS608Addr>>16,AS608Addr>>8,AS608Addr,
+	PACK_CMD,length>>8,length,0x01,temp>>8,temp};
+	HAL_UART_Transmit(&huart3,send_cmd,sizeof(send_cmd),1000);
+	
 	data=JudgeStr(2000);
 	if(data)
 		ensure=data[9];
@@ -112,17 +135,25 @@ u8 PS_GetImage(void)
 //模块返回确认字
 u8 PS_GenChar(u8 BufferID)
 {
-	u16 temp;
+//	u16 temp;
   u8  ensure;
 	u8  *data;
-	SendHead();
-	SendAddr();
-	SendFlag(0x01);//命令包标识
-	SendLength(0x04);
-	Sendcmd(0x02);
-	MYUSART_SendData(BufferID);
-	temp = 0x01+0x04+0x02+BufferID;
-	SendCheck(temp);
+//	SendHead();
+//	SendAddr();
+//	SendFlag(0x01);//命令包标识
+//	SendLength(0x04);
+//	Sendcmd(0x02);
+//	MYUSART_SendData(BufferID);
+//	temp = 0x01+0x04+0x02+BufferID;
+//	SendCheck(temp);
+	
+	recv_end_flag_3=0;
+	u16 length = 0x4;
+	u16 temp = PACK_CMD+length+0x02+BufferID;
+	u8 send_cmd[]={HEAD_H,HEAD_L,AS608Addr>>24,AS608Addr>>16,AS608Addr>>8,AS608Addr,
+	PACK_CMD,length>>8,length,0x02,BufferID,temp>>8,temp};
+	HAL_UART_Transmit(&huart3,send_cmd,sizeof(send_cmd),1000);
+	
 	data=JudgeStr(2000);
 	if(data)
 		ensure=data[9];
@@ -135,16 +166,24 @@ u8 PS_GenChar(u8 BufferID)
 //模块返回确认字
 u8 PS_Match(void)
 {
-	u16 temp;
+//	u16 temp;
   u8  ensure;
 	u8  *data;
-	SendHead();
-	SendAddr();
-	SendFlag(0x01);//命令包标识
-	SendLength(0x03);
-	Sendcmd(0x03);
-	temp = 0x01+0x03+0x03;
-	SendCheck(temp);
+//	SendHead();
+//	SendAddr();
+//	SendFlag(0x01);//命令包标识
+//	SendLength(0x03);
+//	Sendcmd(0x03);
+//	temp = 0x01+0x03+0x03;
+//	SendCheck(temp);
+	
+	recv_end_flag_3=0;
+	u16 length = 0x3;
+	u16 temp = PACK_CMD+length+0x03;
+	u8 send_cmd[]={HEAD_H,HEAD_L,AS608Addr>>24,AS608Addr>>16,AS608Addr>>8,AS608Addr,
+	PACK_CMD,length>>8,length,0x03,temp>>8,temp};
+	HAL_UART_Transmit(&huart3,send_cmd,sizeof(send_cmd),1000);
+	
 	data=JudgeStr(2000);
 	if(data)
 		ensure=data[9];
@@ -158,23 +197,31 @@ u8 PS_Match(void)
 //说明:  模块返回确认字，页码（相配指纹模板）
 u8 PS_Search(u8 BufferID,u16 StartPage,u16 PageNum,SearchResult *p)
 {
-	u16 temp;
+//	u16 temp;
   u8  ensure;
 	u8  *data;
-	SendHead();
-	SendAddr();
-	SendFlag(0x01);//命令包标识
-	SendLength(0x08);
-	Sendcmd(0x04);
-	MYUSART_SendData(BufferID);
-	MYUSART_SendData(StartPage>>8);
-	MYUSART_SendData(StartPage);
-	MYUSART_SendData(PageNum>>8);
-	MYUSART_SendData(PageNum);
-	temp = 0x01+0x08+0x04+BufferID
-	+(StartPage>>8)+(u8)StartPage
-	+(PageNum>>8)+(u8)PageNum;
-	SendCheck(temp);
+//	SendHead();
+//	SendAddr();
+//	SendFlag(0x01);//命令包标识
+//	SendLength(0x08);
+//	Sendcmd(0x04);
+//	MYUSART_SendData(BufferID);
+//	MYUSART_SendData(StartPage>>8);
+//	MYUSART_SendData(StartPage);
+//	MYUSART_SendData(PageNum>>8);
+//	MYUSART_SendData(PageNum);
+//	temp = 0x01+0x08+0x04+BufferID
+//	+(StartPage>>8)+(u8)StartPage
+//	+(PageNum>>8)+(u8)PageNum;
+//	SendCheck(temp);
+	
+	recv_end_flag_3=0;
+	u16 length = 0x08;
+	u16 temp = PACK_CMD+length+0x04+BufferID+(StartPage>>8)+(u8)StartPage+(PageNum>>8)+(u8)PageNum;
+	u8 send_cmd[]={HEAD_H,HEAD_L,AS608Addr>>24,AS608Addr>>16,AS608Addr>>8,AS608Addr,
+	PACK_CMD,length>>8,length,0x04,BufferID,StartPage>>8,StartPage,PageNum>>8,PageNum,temp>>8,temp};
+	HAL_UART_Transmit(&huart3,send_cmd,sizeof(send_cmd),1000);
+	
 	data=JudgeStr(2000);
 	if(data)
 	{
@@ -191,16 +238,24 @@ u8 PS_Search(u8 BufferID,u16 StartPage,u16 PageNum,SearchResult *p)
 //说明:  模块返回确认字
 u8 PS_RegModel(void)
 {
-	u16 temp;
+//	u16 temp;
   u8  ensure;
 	u8  *data;
-	SendHead();
-	SendAddr();
-	SendFlag(0x01);//命令包标识
-	SendLength(0x03);
-	Sendcmd(0x05);
-	temp = 0x01+0x03+0x05;
-	SendCheck(temp);
+//	SendHead();
+//	SendAddr();
+//	SendFlag(0x01);//命令包标识
+//	SendLength(0x03);
+//	Sendcmd(0x05);
+//	temp = 0x01+0x03+0x05;
+//	SendCheck(temp);
+	
+	recv_end_flag_3=0;
+	u16 length = 0x3;
+  u16 temp = PACK_CMD+length+0x05;
+	u8 send_cmd[]={HEAD_H,HEAD_L,AS608Addr>>24,AS608Addr>>16,AS608Addr>>8,AS608Addr,
+	PACK_CMD,length>>8,length,0x05,temp>>8,temp};
+	HAL_UART_Transmit(&huart3,send_cmd,sizeof(send_cmd),1000);
+	
 	data=JudgeStr(2000);
 	if(data)
 		ensure=data[9];
@@ -215,20 +270,28 @@ u8 PS_RegModel(void)
 //说明:  模块返回确认字
 u8 PS_StoreChar(u8 BufferID,u16 PageID)
 {
-	u16 temp;
+//	u16 temp;
   u8  ensure;
 	u8  *data;
-	SendHead();
-	SendAddr();
-	SendFlag(0x01);//命令包标识
-	SendLength(0x06);
-	Sendcmd(0x06);
-	MYUSART_SendData(BufferID);
-	MYUSART_SendData(PageID>>8);
-	MYUSART_SendData(PageID);
-	temp = 0x01+0x06+0x06+BufferID
-	+(PageID>>8)+(u8)PageID;
-	SendCheck(temp);
+//	SendHead();
+//	SendAddr();
+//	SendFlag(0x01);//命令包标识
+//	SendLength(0x06);
+//	Sendcmd(0x06);
+//	MYUSART_SendData(BufferID);
+//	MYUSART_SendData(PageID>>8);
+//	MYUSART_SendData(PageID);
+//	temp = 0x01+0x06+0x06+BufferID
+//	+(PageID>>8)+(u8)PageID;
+//	SendCheck(temp);
+	
+	recv_end_flag_3=0;
+	u16 length = 0x06;
+  u16 temp = PACK_CMD+length+0x06+BufferID+(PageID>>8)+(u8)PageID;
+	u8 send_cmd[]={HEAD_H,HEAD_L,AS608Addr>>24,AS608Addr>>16,AS608Addr>>8,AS608Addr,
+	PACK_CMD,length>>8,length,0x06,BufferID,PageID>>8,PageID,temp>>8,temp};
+	HAL_UART_Transmit(&huart3,send_cmd,sizeof(send_cmd),1000);
+	
 	data=JudgeStr(2000);
 	if(data)
 		ensure=data[9];
@@ -242,22 +305,30 @@ u8 PS_StoreChar(u8 BufferID,u16 PageID)
 //说明:  模块返回确认字
 u8 PS_DeletChar(u16 PageID,u16 N)
 {
-	u16 temp;
+//	u16 temp;
   u8  ensure;
 	u8  *data;
-	SendHead();
-	SendAddr();
-	SendFlag(0x01);//命令包标识
-	SendLength(0x07);
-	Sendcmd(0x0C);
-	MYUSART_SendData(PageID>>8);
-	MYUSART_SendData(PageID);
-	MYUSART_SendData(N>>8);
-	MYUSART_SendData(N);
-	temp = 0x01+0x07+0x0C
-	+(PageID>>8)+(u8)PageID
-	+(N>>8)+(u8)N;
-	SendCheck(temp);
+//	SendHead();
+//	SendAddr();
+//	SendFlag(0x01);//命令包标识
+//	SendLength(0x07);
+//	Sendcmd(0x0C);
+//	MYUSART_SendData(PageID>>8);
+//	MYUSART_SendData(PageID);
+//	MYUSART_SendData(N>>8);
+//	MYUSART_SendData(N);
+//	temp = 0x01+0x07+0x0C
+//	+(PageID>>8)+(u8)PageID
+//	+(N>>8)+(u8)N;
+//	SendCheck(temp);
+	
+	recv_end_flag_3=0;
+	u16 length = 0x07;
+  u16 temp = PACK_CMD+length+0x0C+(PageID>>8)+(u8)PageID+(N>>8)+(u8)N;
+	u8 send_cmd[]={HEAD_H,HEAD_L,AS608Addr>>24,AS608Addr>>16,AS608Addr>>8,AS608Addr,
+	PACK_CMD,length>>8,length,0x0C,PageID>>8,PageID,N>>8,N,temp>>8,temp};
+	HAL_UART_Transmit(&huart3,send_cmd,sizeof(send_cmd),1000);
+	
 	data=JudgeStr(2000);
 	if(data)
 		ensure=data[9];
@@ -271,16 +342,24 @@ u8 PS_DeletChar(u16 PageID,u16 N)
 //说明:  模块返回确认字
 u8 PS_Empty(void)
 {
-	u16 temp;
+//	u16 temp;
   u8  ensure;
 	u8  *data;
-	SendHead();
-	SendAddr();
-	SendFlag(0x01);//命令包标识
-	SendLength(0x03);
-	Sendcmd(0x0D);
-	temp = 0x01+0x03+0x0D;
-	SendCheck(temp);
+//	SendHead();
+//	SendAddr();
+//	SendFlag(0x01);//命令包标识
+//	SendLength(0x03);
+//	Sendcmd(0x0D);
+//	temp = 0x01+0x03+0x0D;
+//	SendCheck(temp);
+	
+	recv_end_flag_3=0;
+	u16 length = 0x3;
+  u16 temp = PACK_CMD+length+0x0D;
+	u8 send_cmd[]={HEAD_H,HEAD_L,AS608Addr>>24,AS608Addr>>16,AS608Addr>>8,AS608Addr,
+	PACK_CMD,length>>8,length,0x0D,temp>>8,temp};
+	HAL_UART_Transmit(&huart3,send_cmd,sizeof(send_cmd),1000);
+	
 	data=JudgeStr(2000);
 	if(data)
 		ensure=data[9];
@@ -294,18 +373,27 @@ u8 PS_Empty(void)
 //说明:  模块返回确认字
 u8 PS_WriteReg(u8 RegNum,u8 DATA)
 {
-	u16 temp;
+//	u16 temp;
   u8  ensure;
 	u8  *data;
-	SendHead();
-	SendAddr();
-	SendFlag(0x01);//命令包标识
-	SendLength(0x05);
-	Sendcmd(0x0E);
-	MYUSART_SendData(RegNum);
-	MYUSART_SendData(DATA);
-	temp = RegNum+DATA+0x01+0x05+0x0E;
-	SendCheck(temp);
+//	SendHead();
+//	SendAddr();
+//	SendFlag(0x01);//命令包标识
+//	SendLength(0x05);
+//	Sendcmd(0x0E);
+//	MYUSART_SendData(RegNum);
+//	MYUSART_SendData(DATA);
+//	temp = RegNum+DATA+0x01+0x05+0x0E;
+//	SendCheck(temp);
+	
+	recv_end_flag_3=0;
+	u8 cmd = 0x0E;
+	u16 length = 0x05;
+  u16 temp = PACK_CMD+length+cmd+RegNum+DATA;
+	u8 send_cmd[]={HEAD_H,HEAD_L,AS608Addr>>24,AS608Addr>>16,AS608Addr>>8,AS608Addr,
+	PACK_CMD,length>>8,length,cmd,RegNum,DATA,temp>>8,temp};
+	HAL_UART_Transmit(&huart3,send_cmd,sizeof(send_cmd),1000);
+	
 	data=JudgeStr(2000);
 	if(data)
 		ensure=data[9];
@@ -323,16 +411,25 @@ u8 PS_WriteReg(u8 RegNum,u8 DATA)
 //说明:  模块返回确认字 + 基本参数（16bytes）
 u8 PS_ReadSysPara(SysPara *p)
 {
-	u16 temp;
+//	u16 temp;
   u8  ensure;
 	u8  *data;
-	SendHead();
-	SendAddr();
-	SendFlag(0x01);//命令包标识
-	SendLength(0x03);
-	Sendcmd(0x0F);
-	temp = 0x01+0x03+0x0F;
-	SendCheck(temp);
+//	SendHead();
+//	SendAddr();
+//	SendFlag(0x01);//命令包标识
+//	SendLength(0x03);
+//	Sendcmd(0x0F);
+//	temp = 0x01+0x03+0x0F;
+//	SendCheck(temp);
+	
+	recv_end_flag_3=0;
+	u8 cmd = 0x0F;
+	u16 length = 0x3;
+  u16 temp = PACK_CMD+length+cmd;
+	u8 send_cmd[]={HEAD_H,HEAD_L,AS608Addr>>24,AS608Addr>>16,AS608Addr>>8,AS608Addr,
+	PACK_CMD,length>>8,length,cmd,temp>>8,temp};
+	HAL_UART_Transmit(&huart3,send_cmd,sizeof(send_cmd),1000);
+	
 	data=JudgeStr(1000);
 	if(data)
 	{
@@ -362,22 +459,31 @@ u8 PS_ReadSysPara(SysPara *p)
 //说明:  模块返回确认字
 u8 PS_SetAddr(u32 PS_addr)
 {
-	u16 temp;
+//	u16 temp;
   u8  ensure;
 	u8  *data;
-	SendHead();
-	SendAddr();
-	SendFlag(0x01);//命令包标识
-	SendLength(0x07);
-	Sendcmd(0x15);
-	MYUSART_SendData(PS_addr>>24);
-	MYUSART_SendData(PS_addr>>16);
-	MYUSART_SendData(PS_addr>>8);
-	MYUSART_SendData(PS_addr);
-	temp = 0x01+0x07+0x15
-	+(u8)(PS_addr>>24)+(u8)(PS_addr>>16)
-	+(u8)(PS_addr>>8) +(u8)PS_addr;				
-	SendCheck(temp);
+//	SendHead();
+//	SendAddr();
+//	SendFlag(0x01);//命令包标识
+//	SendLength(0x07);
+//	Sendcmd(0x15);
+//	MYUSART_SendData(PS_addr>>24);
+//	MYUSART_SendData(PS_addr>>16);
+//	MYUSART_SendData(PS_addr>>8);
+//	MYUSART_SendData(PS_addr);
+//	temp = 0x01+0x07+0x15
+//	+(u8)(PS_addr>>24)+(u8)(PS_addr>>16)
+//	+(u8)(PS_addr>>8) +(u8)PS_addr;				
+//	SendCheck(temp);
+	
+	recv_end_flag_3=0;
+	u8 cmd = 0x15;
+	u16 length = 0x07;
+  u16 temp = PACK_CMD+length+cmd+(u8)(PS_addr>>24)+(u8)(PS_addr>>16)+(u8)(PS_addr>>8) +(u8)PS_addr;
+	u8 send_cmd[]={HEAD_H,HEAD_L,AS608Addr>>24,AS608Addr>>16,AS608Addr>>8,AS608Addr,
+	PACK_CMD,length>>8,length,cmd,PS_addr>>24,PS_addr>>16,PS_addr>>8,PS_addr,temp>>8,temp};
+	HAL_UART_Transmit(&huart3,send_cmd,sizeof(send_cmd),1000);
+
 	AS608Addr=PS_addr;//发送完指令，更换地址
   data=JudgeStr(2000);
 	if(data)
@@ -391,6 +497,7 @@ u8 PS_SetAddr(u32 PS_addr)
 		;//printf("\r\n%s",EnsureMessage(ensure));
 	return ensure;
 }
+#if 0
 //功能： 模块内部为用户开辟了256bytes的FLASH空间用于存用户记事本,
 //	该记事本逻辑上被分成 16 个页。
 //参数:  NotePageNum(0~15),Byte32(要写入内容，32个字节)
@@ -450,6 +557,7 @@ u8 PS_ReadNotepad(u8 NotePageNum,u8 *Byte32)
 		ensure=0xff;
 	return ensure;
 }
+#endif
 //高速搜索PS_HighSpeedSearch
 //功能：以 CharBuffer1或CharBuffer2中的特征文件高速搜索整个或部分指纹库。
 //		  若搜索到，则返回页码,该指令对于的确存在于指纹库中 ，且登录时质量
@@ -458,23 +566,32 @@ u8 PS_ReadNotepad(u8 NotePageNum,u8 *Byte32)
 //说明:  模块返回确认字+页码（相配指纹模板）
 u8 PS_HighSpeedSearch(u8 BufferID,u16 StartPage,u16 PageNum,SearchResult *p)
 {
-	u16 temp;
+//	u16 temp;
   u8  ensure;
 	u8  *data;
-	SendHead();
-	SendAddr();
-	SendFlag(0x01);//命令包标识
-	SendLength(0x08);
-	Sendcmd(0x1b);
-	MYUSART_SendData(BufferID);
-	MYUSART_SendData(StartPage>>8);
-	MYUSART_SendData(StartPage);
-	MYUSART_SendData(PageNum>>8);
-	MYUSART_SendData(PageNum);
-	temp = 0x01+0x08+0x1b+BufferID
-	+(StartPage>>8)+(u8)StartPage
-	+(PageNum>>8)+(u8)PageNum;
-	SendCheck(temp);
+//	SendHead();
+//	SendAddr();
+//	SendFlag(0x01);//命令包标识
+//	SendLength(0x08);
+//	Sendcmd(0x1b);
+//	MYUSART_SendData(BufferID);
+//	MYUSART_SendData(StartPage>>8);
+//	MYUSART_SendData(StartPage);
+//	MYUSART_SendData(PageNum>>8);
+//	MYUSART_SendData(PageNum);
+//	temp = 0x01+0x08+0x1b+BufferID
+//	+(StartPage>>8)+(u8)StartPage
+//	+(PageNum>>8)+(u8)PageNum;
+//	SendCheck(temp);
+	
+	recv_end_flag_3=0;
+	u8 cmd = 0x1b;
+	u16 length = 0x08;
+  u16 temp = PACK_CMD+length+cmd+BufferID+(StartPage>>8)+(u8)StartPage+(PageNum>>8)+(u8)PageNum;
+	u8 send_cmd[]={HEAD_H,HEAD_L,AS608Addr>>24,AS608Addr>>16,AS608Addr>>8,AS608Addr,
+	PACK_CMD,length>>8,length,cmd,BufferID,StartPage>>8,StartPage,PageNum>>8,PageNum,temp>>8,temp};
+	HAL_UART_Transmit(&huart3,send_cmd,sizeof(send_cmd),1000);
+	
 	data=JudgeStr(2000);
  	if(data)
 	{
@@ -492,16 +609,25 @@ u8 PS_HighSpeedSearch(u8 BufferID,u16 StartPage,u16 PageNum,SearchResult *p)
 //说明: 模块返回确认字+有效模板个数ValidN
 u8 PS_ValidTempleteNum(u16 *ValidN)
 {
-	u16 temp;
+//	u16 temp;
   u8  ensure;
 	u8  *data;
-	SendHead();
-	SendAddr();
-	SendFlag(0x01);//命令包标识
-	SendLength(0x03);
-	Sendcmd(0x1d);
-	temp = 0x01+0x03+0x1d;
-	SendCheck(temp);
+//	SendHead();
+//	SendAddr();
+//	SendFlag(0x01);//命令包标识
+//	SendLength(0x03);
+//	Sendcmd(0x1d);
+//	temp = 0x01+0x03+0x1d;
+//	SendCheck(temp);
+	
+	recv_end_flag_3=0;
+	u8 cmd = 0x1d;
+	u16 length = 0x3;
+  u16 temp = PACK_CMD+length+cmd;
+	u8 send_cmd[]={HEAD_H,HEAD_L,AS608Addr>>24,AS608Addr>>16,AS608Addr>>8,AS608Addr,
+	PACK_CMD,length>>8,length,cmd,temp>>8,temp};
+	HAL_UART_Transmit(&huart3,send_cmd,sizeof(send_cmd),1000);
+	
   data=JudgeStr(2000);
 	if(data)
 	{
@@ -524,26 +650,47 @@ u8 PS_ValidTempleteNum(u16 *ValidN)
 //说明: 模块返新地址（正确地址）	
 u8 PS_HandShake(u32 *PS_Addr)
 {
-	SendHead();
-	SendAddr();
-	MYUSART_SendData(0X01);
-	MYUSART_SendData(0X00);
-	MYUSART_SendData(0X00);	
+	recv_end_flag_3=0;
+	u8 cmd = 0x35;
+	u16 length = 0x3;
+  u16 temp = PACK_CMD+length+cmd;
+	u8 send_cmd[]={HEAD_H,HEAD_L,AS608Addr>>24,AS608Addr>>16,AS608Addr>>8,AS608Addr,
+	PACK_CMD,length>>8,length,cmd,temp>>8,temp};
+	HAL_UART_Transmit(&huart3,send_cmd,sizeof(send_cmd),1000);
+	
+//	SendHead();
+//	SendAddr();
+//	MYUSART_SendData(0X01);
+//	MYUSART_SendData(0X00);
+//	MYUSART_SendData(0X00);	
 	HAL_Delay(200);
-	if(USART2_RX_STA&0X8000)//接收到数据
+//	if(USART2_RX_STA&0X8000)//接收到数据
+//	{		
+//		if(//判断是不是模块返回的应答包				
+//					USART2_RX_BUF[0]==0XEF
+//				&&USART2_RX_BUF[1]==0X01
+//				&&USART2_RX_BUF[6]==0X07
+//			)
+//			{
+//				*PS_Addr=(USART2_RX_BUF[2]<<24) + (USART2_RX_BUF[3]<<16)
+//								+(USART2_RX_BUF[4]<<8) + (USART2_RX_BUF[5]);
+//				USART2_RX_STA=0;
+//				return 0;
+//			}
+//		USART2_RX_STA=0;					
+//	}
+	if(recv_end_flag_3)//接收到数据
 	{		
 		if(//判断是不是模块返回的应答包				
-					USART2_RX_BUF[0]==0XEF
-				&&USART2_RX_BUF[1]==0X01
-				&&USART2_RX_BUF[6]==0X07
+					rx_buffer_3[0]==0XEF
+				&&rx_buffer_3[1]==0X01
+				&&rx_buffer_3[6]==0X07
 			)
 			{
-				*PS_Addr=(USART2_RX_BUF[2]<<24) + (USART2_RX_BUF[3]<<16)
-								+(USART2_RX_BUF[4]<<8) + (USART2_RX_BUF[5]);
-				USART2_RX_STA=0;
+				*PS_Addr=(rx_buffer_3[2]<<24) + (rx_buffer_3[3]<<16)
+								+(rx_buffer_3[4]<<8) + (rx_buffer_3[5]);
 				return 0;
-			}
-		USART2_RX_STA=0;					
+			}			
 	}
 	return 1;		
 }
@@ -729,7 +876,7 @@ void Add_FR(void)
 /**************************************************************
 DESC:对比指纹
 *****************************************************************/
-void press_FR(void)
+u8 press_FR(void)
 {
 	SearchResult seach;
 	u8 ensure;
@@ -745,6 +892,7 @@ void press_FR(void)
 			{				
 				OLED_ShowString(0,6,(unsigned char*)" Comper PASS!   ");
 			  OLED_ShowString(0,4,(unsigned char*)" FUN:CPR FRIGER ");
+				return 0;
 			}
 			else 
 			{
@@ -762,6 +910,7 @@ void press_FR(void)
 	 HAL_Delay(1000);//
 
 	}
+	return 1;
 		
 }
 /******************************************************************************

@@ -49,9 +49,9 @@ PUTCHAR_PROTOTYPE
 uint8_t KeyBoard[8] = {0,0,4,0,0,0,0,0};
 uint8_t KeyBoard01[8] = {0,0,0,0,0,0,0,0};
 extern USBD_HandleTypeDef hUsbDeviceFS;
-uint8_t flag;
+__IO uint8_t flag;
 uint8_t aRxBuffer[1];
-uint8_t KeyBuff[4]={0x27,0x1e,0x1f,0x20};
+__IO uint8_t KeyBuff[4]={0x27,0x1e,0x1f,0x20};
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -140,29 +140,57 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		press_FR();
-		
-		if(flag==1)
+		if(flag==3)
 		{
 			flag=0;
-			KeyBoard[0] = 0;
-			KeyBoard[2] = 0x2c;//space
-			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard01));
-			HAL_Delay(15);
-			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
-			HAL_Delay(1000);
-			uint8_t i=0;
-			for(;i<4;i++)
+			if(!press_FR())
 			{
-				KeyBoard[2] = KeyBuff[i];
-				USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard));
+				flag=0;
+				KeyBoard[0] = 0;
+				KeyBoard[2] = 0x2c;//space
+				USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard01));
 				HAL_Delay(15);
-				USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard01));
+				USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
+				HAL_Delay(1000);
+				uint8_t i=0;
+				for(;i<4;i++)
+				{
+					KeyBoard[2] = KeyBuff[i];//KeyBuff[i]==0?0x27:KeyBuff[i]+0x1D;
+					USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard));
+					HAL_Delay(15);
+					USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard01));
+					HAL_Delay(15);
+				}
+				KeyBoard[2] = 0x28;
+				USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard01));
 				HAL_Delay(15);
+				USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
 			}
-			OLED_Clear();
-			OLED_ShowCHinese(48,3,7);
-			OLED_ShowCHinese(48+16,3,8);
+		}
+		else if(flag==1)
+		{
+			Add_FR();
+			OLED_ShowString(0,4,(unsigned char*)" FUN:ADD FRIGER ");
+			flag=0;
+//			flag=0;
+//			KeyBoard[0] = 0;
+//			KeyBoard[2] = 0x2c;//space
+//			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard01));
+//			HAL_Delay(15);
+//			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
+//			HAL_Delay(1000);
+//			uint8_t i=0;
+//			for(;i<4;i++)
+//			{
+//				KeyBoard[2] = KeyBuff[i];
+//				USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard));
+//				HAL_Delay(15);
+//				USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard01));
+//				HAL_Delay(15);
+//			}
+//			OLED_Clear();
+//			OLED_ShowCHinese(48,3,7);
+//			OLED_ShowCHinese(48+16,3,8);
 		}
 		else if(flag==2)
 		{
@@ -276,6 +304,18 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		else if(HAL_GPIO_ReadPin(SW2_GPIO_Port,SW2_Pin) == GPIO_PIN_RESET)
 		{
 			flag=2;
+		}
+	}
+	else if(GPIO_Pin==Touch_Pin)
+  {
+		if(HAL_GPIO_ReadPin(Touch_GPIO_Port,Touch_Pin) == GPIO_PIN_SET)
+		{
+			if(!flag)
+				flag=3;
+		}
+		else if(HAL_GPIO_ReadPin(Touch_GPIO_Port,Touch_Pin) == GPIO_PIN_RESET)
+		{
+
 		}
 	}
 }

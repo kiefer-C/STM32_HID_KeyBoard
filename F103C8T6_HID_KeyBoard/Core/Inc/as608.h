@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include "main.h"
 #include "oled.h"
+#include "usart.h"
 //#include "stm32f10x.h"
 
 #define PS_Sta   PAin(6)//读指纹模块状态引脚
@@ -44,9 +45,9 @@ u8 PS_DeletChar(u16 PageID,u16 N);//删除模板
 
 u8 PS_Empty(void);//清空指纹库 
 
-u8 PS_WriteReg(u8 RegNum,u8 DATA);//写系统寄存器 
- 
-u8 PS_ReadSysPara(SysPara *p); //读系统基本参数 
+//u8 PS_WriteReg(u8 RegNum,u8 DATA);//写系统寄存器 
+// 
+//u8 PS_ReadSysPara(SysPara *p); //读系统基本参数 
 
 u8 PS_SetAddr(u32 addr);  //设置模块地址 
 
@@ -64,7 +65,7 @@ const char *EnsureMessage(u8 ensure);//确认码错误信息解析
 
 void Add_FR(void);	//添加指纹
 void Del_FR(void);	//删除指纹
-void press_FR(void);//比对指纹
+u8 press_FR(void);//比对指纹
 
 #endif
 
