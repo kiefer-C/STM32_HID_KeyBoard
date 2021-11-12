@@ -67,5 +67,14 @@ void Add_FR(void);	//添加指纹
 void Del_FR(void);	//删除指纹
 u8 press_FR(void);//比对指纹
 
+int light_open(void);//灯常开
+int light_close(void);//灯常关
+int light_start_close(void);//关闭上电自动亮灯
+int light_start_open(void);//开启上电自动亮灯
+int light_start_setup(void);//设置上电自动亮灯
+int light_setup_sucess(void);//成功默认亮灯颜色设置 绿
+int light_setup_fail(void);//失败默认亮灯颜色设置 红
+int light_setup_test(void);
+
 #endif
 

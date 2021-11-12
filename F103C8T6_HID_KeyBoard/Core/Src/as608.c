@@ -951,6 +951,210 @@ void Del_FR(void)
 	//HAL_Delay(50);
 	//AS608_load_keyboard(0,170,(u8**)kbd_menu);
 }
-
-
-
+int light_open(void)//灯常开
+{
+	recv_end_flag_3=0;
+	u8 cmd = 0x3c;
+	u8 ctrl = 0x3;
+  u8 speed = 0;
+	u8 color = 7;
+	u8 cnt = 0;
+	u16 length = 0x7;
+  u16 temp = PACK_CMD+length+cmd+ctrl+speed+color+cnt;
+	u8 send_cmd[]={HEAD_H,HEAD_L,AS608Addr>>24,AS608Addr>>16,AS608Addr>>8,AS608Addr,
+	PACK_CMD,length>>8,length,cmd,ctrl,speed,color,cnt,temp>>8,temp};
+	HAL_UART_Transmit(&huart3,send_cmd,sizeof(send_cmd),1000);
+	HAL_Delay(200);
+	if(recv_end_flag_3)//接收到数据
+	{		
+		if(//判断是不是模块返回的应答包				
+					rx_buffer_3[0]==0XEF
+				&&rx_buffer_3[1]==0X01
+				&&rx_buffer_3[6]==0X07
+			)
+			{
+				return rx_buffer_3[9];
+			}			
+	}
+	return -1;
+}
+int light_close(void)//灯常关
+{
+	recv_end_flag_3=0;
+	u8 cmd = 0x3c;
+	u8 ctrl = 0x4;
+	u16 length = 0x4;
+  u16 temp = PACK_CMD+length+cmd+ctrl;
+	u8 send_cmd[]={HEAD_H,HEAD_L,AS608Addr>>24,AS608Addr>>16,AS608Addr>>8,AS608Addr,
+	PACK_CMD,length>>8,length,cmd,ctrl,temp>>8,temp};
+	HAL_UART_Transmit(&huart3,send_cmd,sizeof(send_cmd),1000);
+	HAL_Delay(200);
+	if(recv_end_flag_3)//接收到数据
+	{		
+		if(//判断是不是模块返回的应答包				
+					rx_buffer_3[0]==0XEF
+				&&rx_buffer_3[1]==0X01
+				&&rx_buffer_3[6]==0X07
+			)
+			{
+				return rx_buffer_3[9];
+			}			
+	}
+	return -1;
+}
+int light_start_close(void)//关闭上电自动亮灯
+{
+	recv_end_flag_3=0;
+	u8 cmd = 0x3c;
+	u8 ctrl = 0xf5;
+	u16 length = 0x4;
+  u16 temp = PACK_CMD+length+cmd+ctrl;
+	u8 send_cmd[]={HEAD_H,HEAD_L,AS608Addr>>24,AS608Addr>>16,AS608Addr>>8,AS608Addr,
+	PACK_CMD,length>>8,length,cmd,ctrl,temp>>8,temp};
+	HAL_UART_Transmit(&huart3,send_cmd,sizeof(send_cmd),1000);
+	HAL_Delay(200);
+	if(recv_end_flag_3)//接收到数据
+	{		
+		if(//判断是不是模块返回的应答包				
+					rx_buffer_3[0]==0XEF
+				&&rx_buffer_3[1]==0X01
+				&&rx_buffer_3[6]==0X07
+			)
+			{
+				return rx_buffer_3[9];
+			}			
+	}
+	return -1;
+}
+int light_start_open(void)//开启上电自动亮灯
+{
+	recv_end_flag_3=0;
+	u8 cmd = 0x3c;
+	u8 ctrl = 0xf6;
+	u16 length = 0x4;
+  u16 temp = PACK_CMD+length+cmd+ctrl;
+	u8 send_cmd[]={HEAD_H,HEAD_L,AS608Addr>>24,AS608Addr>>16,AS608Addr>>8,AS608Addr,
+	PACK_CMD,length>>8,length,cmd,ctrl,temp>>8,temp};
+	HAL_UART_Transmit(&huart3,send_cmd,sizeof(send_cmd),1000);
+	HAL_Delay(200);
+	if(recv_end_flag_3)//接收到数据
+	{		
+		if(//判断是不是模块返回的应答包				
+					rx_buffer_3[0]==0XEF
+				&&rx_buffer_3[1]==0X01
+				&&rx_buffer_3[6]==0X07
+			)
+			{
+				return rx_buffer_3[9];
+			}			
+	}
+	return -1;
+}
+int light_start_setup(void)//设置上电自动亮灯
+{
+	recv_end_flag_3=0;
+	u8 cmd = 0x3c;
+	u8 ctrl = 0xfa;
+	u8 speed = 0xff;
+	u8 color = 5;
+	u8 cnt = 1;
+	u16 length = 0x7;
+  u16 temp = PACK_CMD+length+cmd+ctrl+speed+color+cnt;
+	u8 send_cmd[]={HEAD_H,HEAD_L,AS608Addr>>24,AS608Addr>>16,AS608Addr>>8,AS608Addr,
+	PACK_CMD,length>>8,length,cmd,ctrl,speed,color,cnt,temp>>8,temp};
+	HAL_UART_Transmit(&huart3,send_cmd,sizeof(send_cmd),1000);
+	HAL_Delay(200);
+	if(recv_end_flag_3)//接收到数据
+	{		
+		if(//判断是不是模块返回的应答包				
+					rx_buffer_3[0]==0XEF
+				&&rx_buffer_3[1]==0X01
+				&&rx_buffer_3[6]==0X07
+			)
+			{
+				return rx_buffer_3[9];
+			}			
+	}
+	return -1;
+}
+int light_setup_sucess(void)//成功默认亮灯颜色设置 绿
+{
+	recv_end_flag_3=0;
+	u8 cmd = 0x3c;
+	u8 ctrl = 0xfb;
+	u8 speed = 0;
+	u8 color = 3;
+	u8 cnt = 1;
+	u16 length = 0x7;
+  u16 temp = PACK_CMD+length+cmd+ctrl+speed+color+cnt;
+	u8 send_cmd[]={HEAD_H,HEAD_L,AS608Addr>>24,AS608Addr>>16,AS608Addr>>8,AS608Addr,
+	PACK_CMD,length>>8,length,cmd,ctrl,speed,color,cnt,temp>>8,temp};
+	HAL_UART_Transmit(&huart3,send_cmd,sizeof(send_cmd),1000);
+	HAL_Delay(200);
+	if(recv_end_flag_3)//接收到数据
+	{		
+		if(//判断是不是模块返回的应答包				
+					rx_buffer_3[0]==0XEF
+				&&rx_buffer_3[1]==0X01
+				&&rx_buffer_3[6]==0X07
+			)
+			{
+				return rx_buffer_3[9];
+			}			
+	}
+	return -1;
+}
+int light_setup_fail(void)//失败默认亮灯颜色设置 红
+{
+	recv_end_flag_3=0;
+	u8 cmd = 0x3c;
+	u8 ctrl = 0xfc;
+	u8 speed = 0;
+	u8 color = 1;
+	u8 cnt = 3;
+	u16 length = 0x7;
+  u16 temp = PACK_CMD+length+cmd+ctrl+speed+color+cnt;
+	u8 send_cmd[]={HEAD_H,HEAD_L,AS608Addr>>24,AS608Addr>>16,AS608Addr>>8,AS608Addr,
+	PACK_CMD,length>>8,length,cmd,ctrl,speed,color,cnt,temp>>8,temp};
+	HAL_UART_Transmit(&huart3,send_cmd,sizeof(send_cmd),1000);
+	HAL_Delay(200);
+	if(recv_end_flag_3)//接收到数据
+	{		
+		if(//判断是不是模块返回的应答包				
+					rx_buffer_3[0]==0XEF
+				&&rx_buffer_3[1]==0X01
+				&&rx_buffer_3[6]==0X07
+			)
+			{
+				return rx_buffer_3[9];
+			}			
+	}
+	return -1;
+}
+int light_setup_test(void)
+{
+	recv_end_flag_3=0;
+	u8 cmd = 0x3c;
+	u8 ctrl = 0x1;
+	u8 speed = 0;
+	u8 color = 4;
+	u8 cnt = 3;
+	u16 length = 0x7;
+  u16 temp = PACK_CMD+length+cmd+ctrl+speed+color+cnt;
+	u8 send_cmd[]={HEAD_H,HEAD_L,AS608Addr>>24,AS608Addr>>16,AS608Addr>>8,AS608Addr,
+	PACK_CMD,length>>8,length,cmd,ctrl,speed,color,cnt,temp>>8,temp};
+	HAL_UART_Transmit(&huart3,send_cmd,sizeof(send_cmd),1000);
+	HAL_Delay(200);
+	if(recv_end_flag_3)//接收到数据
+	{		
+		if(//判断是不是模块返回的应答包				
+					rx_buffer_3[0]==0XEF
+				&&rx_buffer_3[1]==0X01
+				&&rx_buffer_3[6]==0X07
+			)
+			{
+				return rx_buffer_3[9];
+			}			
+	}
+	return -1;
+}

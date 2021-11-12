@@ -51,7 +51,8 @@ uint8_t KeyBoard01[8] = {0,0,0,0,0,0,0,0};
 extern USBD_HandleTypeDef hUsbDeviceFS;
 __IO uint8_t flag;
 uint8_t aRxBuffer[1];
-__IO uint8_t KeyBuff[4]={0x27,0x1e,0x1f,0x20};
+__IO uint8_t KeyBuff[4];
+uint8_t key_status;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -77,7 +78,6 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
 /* USER CODE END 0 */
 
 /**
@@ -118,17 +118,19 @@ int main(void)
 	HAL_UART_Receive_IT(&huart1,aRxBuffer,1);
 	__HAL_UART_ENABLE_IT(&huart3, UART_IT_IDLE);
 	HAL_UART_Receive_DMA(&huart3,rx_buffer_3,BUFFER_SIZE);
-	ReadCustomData();
-	OLED_Init();
-	HAL_Delay(1000);
-	OLED_Clear();
+	//ReadCustomData();
+//	OLED_Init();
+//	HAL_Delay(1000);
+//	OLED_Clear();
 //	uint8_t t=' ';
+	HAL_GPIO_WritePin(GPIOA, LED_1_Pin, GPIO_PIN_RESET);
 	while(PS_HandShake(&AS608Addr))
 	{
-	  OLED_ShowString(0,2,(unsigned char*)" ShakHands....");
+//	  OLED_ShowString(0,2,(unsigned char*)" ShakHands....");
+		HAL_GPIO_WritePin(GPIOA, LED_1_Pin, GPIO_PIN_SET);
 	}
 	//ÎÕÊÖÍ¨¹ý  
-	OLED_ShowString(0,2,(unsigned char*)" Ready To Work ");
+//	OLED_ShowString(0,2,(unsigned char*)" Ready To Work ");
 	
 	HAL_Delay(100);
   /* USER CODE END 2 */
@@ -140,31 +142,49 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		if(flag==3)
+		HAL_Delay(500);
+		if(flag>=3)//==3||flag==4)
 		{
-			flag=0;
+			flag++;
+			if(flag==5)
+				flag=0;
 			if(!press_FR())
 			{
-				flag=0;
-				KeyBoard[0] = 0;
-				KeyBoard[2] = 0x2c;//space
-				USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard01));
-				HAL_Delay(15);
-				USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
-				HAL_Delay(1000);
-				uint8_t i=0;
-				for(;i<4;i++)
+				if(key_status==1)
 				{
-					KeyBoard[2] = KeyBuff[i];//KeyBuff[i]==0?0x27:KeyBuff[i]+0x1D;
-					USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard));
+					key_status=0;
+					KeyBoard[0] = 0;
+					KeyBoard[2] = 0x2c;//space
+					USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard01));
 					HAL_Delay(15);
-					USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard01));
+					USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
+					HAL_Delay(500);
+					uint8_t i=0;
+					for(;i<4;i++)
+					{
+						KeyBoard[2] = KeyBuff[i];//KeyBuff[i]==0?0x27:KeyBuff[i]+0x1D;
+						USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard));
+						HAL_Delay(15);
+						USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard01));
+						HAL_Delay(15);
+					}
+					KeyBoard[2] = 0x28;
+					USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard01));
 					HAL_Delay(15);
+					USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
 				}
-				KeyBoard[2] = 0x28;
-				USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard01));
-				HAL_Delay(15);
-				USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
+				else
+				{
+					key_status=1;
+					KeyBoard[0] = 8;//win
+					KeyBoard[2] = 0xf;//l
+					USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard01));
+					HAL_Delay(15);
+					USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
+//					OLED_Clear();
+//					OLED_ShowCHinese(48,3,8);
+//					OLED_ShowCHinese(48+16,3,9);
+				}
 			}
 		}
 		else if(flag==1)
@@ -200,9 +220,9 @@ int main(void)
 			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard,sizeof(KeyBoard01));
 			HAL_Delay(15);
 			USBD_HID_SendReport(&hUsbDeviceFS,(uint8_t*)&KeyBoard01,sizeof(KeyBoard));
-			OLED_Clear();
-			OLED_ShowCHinese(48,3,8);
-			OLED_ShowCHinese(48+16,3,9);
+//			OLED_Clear();
+//			OLED_ShowCHinese(48,3,8);
+//			OLED_ShowCHinese(48+16,3,9);
 		}
 		
 //		OLED_Clear();
@@ -288,22 +308,23 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   {
 		if(HAL_GPIO_ReadPin(SW1_GPIO_Port,SW1_Pin) == GPIO_PIN_SET)
 		{
-			
+//			light_open();
 		}
 		else if(HAL_GPIO_ReadPin(SW1_GPIO_Port,SW1_Pin) == GPIO_PIN_RESET)
 		{
-			flag=1;
+			//flag=1;
 		}
 	}
 	else if(GPIO_Pin==SW2_Pin)
   {
 		if(HAL_GPIO_ReadPin(SW2_GPIO_Port,SW2_Pin) == GPIO_PIN_SET)
 		{
-			
+//			light_start_open();
+//			light_start_setup();
 		}
 		else if(HAL_GPIO_ReadPin(SW2_GPIO_Port,SW2_Pin) == GPIO_PIN_RESET)
 		{
-			flag=2;
+			//flag=2;
 		}
 	}
 	else if(GPIO_Pin==Touch_Pin)
